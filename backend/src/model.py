@@ -36,7 +36,7 @@ from transformers import (
     PreTrainedTokenizerBase,
 )
 
-from src.config import MODEL_NAME, NUM_LABELS, MODEL_DIR
+from src.config import MODEL_NAME, NUM_LABELS, MODEL_DIR, HF_MODEL_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -146,26 +146,47 @@ def load_saved_model(
     save_dir = save_dir or str(MODEL_DIR)
     save_path = Path(save_dir)
 
-    if not save_path.exists():
+    # Check if the local model directory has the essential files.
+    # Since saved model weights are excluded from Git to prevent repository bloat (260MB+),
+    # Render deployments will not have them locally. We seamlessly fall back to Hugging Face Hub.
+    local_exists = (
+        save_path.exists()
+        and (save_path / "config.json").exists()
+        and (
+            (save_path / "model.safetensors").exists()
+            or (save_path / "pytorch_model.bin").exists()
+        )
+    )
+
+    if local_exists:
+        logger.info("Loading fine-tuned model locally from %s", save_path)
+        model_source = str(save_path)
+    elif HF_MODEL_NAME:
+        logger.info(
+            "Local model not found at %s. Seamlessly falling back to loading "
+            "fine-tuned weights from Hugging Face Hub: %s",
+            save_path,
+            HF_MODEL_NAME,
+        )
+        model_source = HF_MODEL_NAME
+    else:
         raise FileNotFoundError(
-            f"Model directory not found: {save_path}. "
-            "Train the model first using train.py."
+            f"Model directory not found locally at: {save_path}, and no Hugging Face "
+            "fallback repository (HF_MODEL_NAME) is configured in config.py."
         )
 
-    logger.info("Loading model from %s", save_path)
-
     try:
-        model = AutoModelForSequenceClassification.from_pretrained(str(save_path))
-        tokenizer = AutoTokenizer.from_pretrained(str(save_path))
+        model = AutoModelForSequenceClassification.from_pretrained(model_source)
+        tokenizer = AutoTokenizer.from_pretrained(model_source)
 
         # Set model to evaluation mode by default for inference safety.
         model.eval()
 
-        logger.info("Model and tokenizer loaded successfully.")
+        logger.info("Model and tokenizer loaded successfully from %s.", model_source)
         return model, tokenizer
 
     except OSError as e:
-        logger.error("Failed to load model from '%s': %s", save_path, e)
+        logger.error("Failed to load model from '%s': %s", model_source, e)
         raise
 
 

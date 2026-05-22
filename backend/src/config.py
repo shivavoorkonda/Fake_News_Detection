@@ -42,6 +42,11 @@ METRICS_DIR: Path = BASE_DIR / 'models'
 # the massive speedup — especially important when serving real-time predictions.
 MODEL_NAME: str = 'distilbert-base-uncased'
 
+# The public Hugging Face repository where your fine-tuned SADA model is hosted.
+# Render will pull from this repository automatically because large model files
+# are excluded from Git to prevent repository bloat.
+HF_MODEL_NAME: str = 'shivavoorkonda/Fake_News_Detection'
+
 # Interview: Why max_length=128 instead of 256?
 # Reducing max_length to 64 significantly speeds up self-attention training
 # and inference on CPU (yielding a ~4x to 5x total speedup from the baseline)
