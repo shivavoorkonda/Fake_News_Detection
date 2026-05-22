@@ -1,0 +1,41 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Virtual environments
+venv/
+env/
+.env
+
+# Large archives and binaries
+*.zip
+*.tar.gz
+*.tgz
+
+# IDE files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Fake News Detector - Data and Models (Keep it professional and lightweight)
+# We ignore the raw dataset CSVs (each 50MB+) and model checkpoints (500MB+)
+backend/data/raw/
+backend/data/**/*.csv
+backend/dataset/
+backend/dataset/**/*.csv
+backend/models/saved/
+backend/models/training_output/
+backend/models/test_data.csv
+
+# Output logs and temporary images
+*.log
+backend/models/confusion_matrix.png

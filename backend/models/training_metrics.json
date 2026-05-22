@@ -1,0 +1,44 @@
+{
+  "train_metrics": {
+    "train_runtime": 744.3255,
+    "train_samples_per_second": 15.047,
+    "train_steps_per_second": 0.94,
+    "total_flos": 185454358118400.0,
+    "train_loss": 0.11278666268235871,
+    "epoch": 2.0
+  },
+  "eval_metrics": {
+    "eval_loss": 0.035516880452632904,
+    "eval_accuracy": 0.9883,
+    "eval_f1": 0.9877,
+    "eval_precision": 0.9895,
+    "eval_recall": 0.986,
+    "eval_runtime": 9.8215,
+    "eval_samples_per_second": 61.091,
+    "eval_steps_per_second": 1.935,
+    "epoch": 2.0
+  },
+  "dataset_stats": {
+    "total_samples": 6000,
+    "label_distribution": {
+      "FAKE": 3143,
+      "REAL": 2857
+    },
+    "label_percentages": {
+      "FAKE": 52.38,
+      "REAL": 47.62
+    },
+    "subject_distribution": {
+      "politicsNews": 1539,
+      "worldnews": 1318,
+      "News": 1229,
+      "politics": 884,
+      "left-news": 596,
+      "Government News": 229,
+      "Middle-east": 115,
+      "US_News": 90
+    },
+    "avg_title_length": 80.3,
+    "avg_text_length": 2487.8
+  }
+}

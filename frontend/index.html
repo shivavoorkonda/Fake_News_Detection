@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FakeGuard AI — Detect Fake News with AI-Powered Analysis</title>
+  <meta name="description" content="FakeGuard AI uses DistilBERT, SHAP, and LIME to detect fake news articles with explainable AI. Analyze any news article instantly." />
+  <meta name="keywords" content="fake news detection, AI, NLP, DistilBERT, SHAP, LIME, explainability, news analysis" />
+  <meta name="author" content="FakeGuard AI" />
+  <meta name="robots" content="index, follow" />
+  <meta property="og:title" content="FakeGuard AI — Detect Fake News with AI" />
+  <meta property="og:description" content="AI-powered fake news detection with explainable predictions using DistilBERT, SHAP & LIME." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#0a0e27" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- NAVIGATION                                                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <nav id="navbar" class="navbar">
+    <div class="nav-container">
+      <a href="#" class="nav-logo" id="nav-logo">
+        <span class="logo-icon">🛡️</span>
+        <span class="logo-text">Fake<span class="logo-highlight">Guard</span> AI</span>
+      </a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#analyzer" class="nav-link">Analyze</a></li>
+        <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+        <li><a href="#metrics" class="nav-link">Metrics</a></li>
+      </ul>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- HERO SECTION                                                -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <header id="hero" class="hero">
+    <div class="hero-bg-effects">
+      <div class="hero-orb hero-orb--1"></div>
+      <div class="hero-orb hero-orb--2"></div>
+      <div class="hero-orb hero-orb--3"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        AI-Powered Analysis
+      </div>
+      <h1 class="hero-title">
+        Detect <span class="gradient-text">Fake News</span> with AI
+      </h1>
+      <p class="hero-subtitle">
+        Powered by <strong>DistilBERT</strong> transformer model with
+        <strong>SHAP</strong> &amp; <strong>LIME</strong> explainability.
+        Understand not just <em>what</em> the model predicts, but <em>why</em>.
+      </p>
+      <a href="#analyzer" class="btn btn-primary btn-hero" id="hero-cta">
+        <span>Start Analyzing</span>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+          <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ANALYZER SECTION                                            -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section id="analyzer" class="section analyzer-section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">News <span class="gradient-text">Analyzer</span></h2>
+        <p class="section-subtitle">Paste any news article below to check its authenticity with AI</p>
+      </div>
+
+      <!-- Input Card -->
+      <div class="glass-card analyzer-card">
+        <div class="input-group">
+          <label for="news-title" class="input-label">Headline <span class="optional-tag">optional</span></label>
+          <input
+            type="text"
+            id="news-title"
+            class="input-field"
+            placeholder="Enter news headline..."
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="input-group">
+          <label for="news-text" class="input-label">Article Text <span class="required-tag">required</span></label>
+          <textarea
+            id="news-text"
+            class="input-field textarea-field"
+            rows="6"
+            placeholder="Paste or type news article text here..."
+          ></textarea>
+          <div class="char-count" id="char-count">0 characters</div>
+        </div>
+
+        <!-- Sample Article Buttons -->
+        <div class="samples-row">
+          <span class="samples-label">Try a sample:</span>
+          <button class="btn btn-sample btn-sample--fake" id="sample-btn-0" onclick="loadSample(0)">
+            <span class="sample-dot sample-dot--fake"></span>
+            Fake Example
+          </button>
+          <button class="btn btn-sample btn-sample--real" id="sample-btn-1" onclick="loadSample(1)">
+            <span class="sample-dot sample-dot--real"></span>
+            Real Example
+          </button>
+          <button class="btn btn-sample btn-sample--mixed" id="sample-btn-2" onclick="loadSample(2)">
+            <span class="sample-dot sample-dot--mixed"></span>
+            Ambiguous
+          </button>
+        </div>
+
+        <!-- Analyze Button -->
+        <button class="btn btn-primary btn-analyze" id="analyze-btn" onclick="analyzeNews()">
+          <span class="btn-text">Analyze Article</span>
+          <span class="btn-loader" id="analyze-loader">
+            <span class="spinner"></span>
+          </span>
+          <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Error Message -->
+      <div class="error-container" id="error-container" role="alert">
+        <div class="glass-card error-card">
+          <div class="error-icon">⚠️</div>
+          <p class="error-message" id="error-message"></p>
+          <button class="btn btn-ghost btn-dismiss" id="error-dismiss" onclick="dismissError()">Dismiss</button>
+        </div>
+      </div>
+
+      <!-- Loading Skeleton -->
+      <div class="results-skeleton" id="results-skeleton">
+        <div class="glass-card skeleton-card">
+          <div class="skeleton-line skeleton-line--title"></div>
+          <div class="skeleton-line skeleton-line--subtitle"></div>
+          <div class="skeleton-gauge"></div>
+          <div class="skeleton-line skeleton-line--bar"></div>
+          <div class="skeleton-line skeleton-line--text"></div>
+          <div class="skeleton-line skeleton-line--text short"></div>
+        </div>
+      </div>
+
+      <!-- Results Area -->
+      <div class="results-area" id="results-area">
+
+        <!-- Verdict Card -->
+        <div class="glass-card verdict-card" id="verdict-card">
+          <div class="verdict-header">
+            <div class="verdict-label-wrapper">
+              <span class="verdict-label" id="verdict-label">REAL</span>
+              <span class="verdict-confidence-text" id="verdict-confidence-text">95% confidence</span>
+            </div>
+            <div class="gauge-container" id="gauge-container">
+              <svg class="gauge-svg" viewBox="0 0 120 120">
+                <circle class="gauge-track" cx="60" cy="60" r="52" />
+                <circle class="gauge-fill" id="gauge-fill" cx="60" cy="60" r="52" />
+              </svg>
+              <div class="gauge-value" id="gauge-value">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Probability Bar -->
+        <div class="glass-card probability-card" id="probability-card">
+          <h3 class="card-title">Probability Distribution</h3>
+          <div class="probability-bar-container">
+            <div class="probability-bar">
+              <div class="probability-segment probability-segment--fake" id="prob-fake-bar">
+                <span class="prob-label" id="prob-fake-label">FAKE 0%</span>
+              </div>
+              <div class="probability-segment probability-segment--real" id="prob-real-bar">
+                <span class="prob-label" id="prob-real-label">REAL 0%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explainability Section -->
+        <div class="glass-card explain-card" id="explain-card">
+          <h3 class="card-title">Explainability Analysis</h3>
+          <div class="tabs" id="explain-tabs">
+            <button class="tab-btn" id="tab-shap" onclick="switchTab('shap')">
+              <span class="tab-icon">🔬</span> SHAP
+            </button>
+            <button class="tab-btn active" id="tab-lime" onclick="switchTab('lime')">
+              <span class="tab-icon">🍋</span> LIME
+            </button>
+            <div class="tab-indicator right" id="tab-indicator"></div>
+          </div>
+
+          <!-- SHAP Content -->
+          <div class="tab-content" id="tab-content-shap">
+            <div class="explain-loading" id="shap-loading">
+              <span class="spinner"></span>
+              <span>Computing SHAP explanations...</span>
+            </div>
+            <div class="explain-legend">
+              <span class="legend-item"><span class="legend-dot legend-dot--fake"></span> Pushes toward FAKE</span>
+              <span class="legend-item"><span class="legend-dot legend-dot--real"></span> Pushes toward REAL</span>
+            </div>
+            <div class="word-highlights" id="shap-highlights"></div>
+          </div>
+
+          <!-- LIME Content -->
+          <div class="tab-content active" id="tab-content-lime">
+            <div class="explain-loading" id="lime-loading">
+              <span class="spinner"></span>
+              <span>Computing LIME explanations...</span>
+            </div>
+            <div class="explain-legend">
+              <span class="legend-item"><span class="legend-dot legend-dot--fake"></span> Pushes toward FAKE</span>
+              <span class="legend-item"><span class="legend-dot legend-dot--real"></span> Pushes toward REAL</span>
+            </div>
+            <div class="word-highlights" id="lime-highlights"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- HOW IT WORKS                                                -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section id="how-it-works" class="section how-section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">How It <span class="gradient-text">Works</span></h2>
+        <p class="section-subtitle">From raw text to explainable predictions in seconds</p>
+      </div>
+
+      <div class="steps-grid">
+        <!-- Step 1 -->
+        <div class="glass-card step-card">
+          <div class="step-number">01</div>
+          <div class="step-icon">📊</div>
+          <h3 class="step-title">Data Pipeline</h3>
+          <p class="step-desc">
+            Trained on 44,000+ articles from the Kaggle Fake and Real News Dataset. Text is cleaned, tokenized, and encoded using DistilBERT's WordPiece tokenizer.
+          </p>
+        </div>
+        <!-- Step 2 -->
+        <div class="glass-card step-card">
+          <div class="step-number">02</div>
+          <div class="step-icon">🧠</div>
+          <h3 class="step-title">Model Training</h3>
+          <p class="step-desc">
+            A DistilBERT transformer is fine-tuned for binary classification. The model learns contextual representations to distinguish fake from real news patterns.
+          </p>
+        </div>
+        <!-- Step 3 -->
+        <div class="glass-card step-card">
+          <div class="step-number">03</div>
+          <div class="step-icon">⚡</div>
+          <h3 class="step-title">Prediction</h3>
+          <p class="step-desc">
+            Articles are passed through the fine-tuned model for real-time inference. The API returns a label (FAKE/REAL) with a calibrated confidence score.
+          </p>
+        </div>
+        <!-- Step 4 -->
+        <div class="glass-card step-card">
+          <div class="step-number">04</div>
+          <div class="step-icon">🔍</div>
+          <h3 class="step-title">Explainability</h3>
+          <p class="step-desc">
+            SHAP (SHapley Additive exPlanations) and LIME (Local Interpretable Model-agnostic Explanations) highlight which words drove the model's decision.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- METRICS SECTION                                             -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section id="metrics" class="section metrics-section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Model <span class="gradient-text">Performance</span></h2>
+        <p class="section-subtitle">Evaluation metrics on the held-out test set</p>
+      </div>
+
+      <div class="metrics-grid" id="metrics-grid">
+        <div class="glass-card metric-card" id="metric-accuracy">
+          <div class="metric-icon">🎯</div>
+          <div class="metric-value" id="metric-val-accuracy">—</div>
+          <div class="metric-label">Accuracy</div>
+          <div class="metric-bar"><div class="metric-bar-fill" id="metric-bar-accuracy"></div></div>
+        </div>
+        <div class="glass-card metric-card" id="metric-precision">
+          <div class="metric-icon">🔬</div>
+          <div class="metric-value" id="metric-val-precision">—</div>
+          <div class="metric-label">Precision</div>
+          <div class="metric-bar"><div class="metric-bar-fill" id="metric-bar-precision"></div></div>
+        </div>
+        <div class="glass-card metric-card" id="metric-recall">
+          <div class="metric-icon">📡</div>
+          <div class="metric-value" id="metric-val-recall">—</div>
+          <div class="metric-label">Recall</div>
+          <div class="metric-bar"><div class="metric-bar-fill" id="metric-bar-recall"></div></div>
+        </div>
+        <div class="glass-card metric-card" id="metric-f1">
+          <div class="metric-icon">⚖️</div>
+          <div class="metric-value" id="metric-val-f1">—</div>
+          <div class="metric-label">F1 Score</div>
+          <div class="metric-bar"><div class="metric-bar-fill" id="metric-bar-f1"></div></div>
+        </div>
+      </div>
+
+      <p class="metrics-note" id="metrics-note"></p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- FOOTER                                                      -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <footer id="footer" class="footer">
+    <div class="container footer-inner">
+      <div class="footer-logo">
+        <span class="logo-icon">🛡️</span>
+        <span class="logo-text">Fake<span class="logo-highlight">Guard</span> AI</span>
+      </div>
+      <p class="footer-text">
+        Built with <strong>DistilBERT</strong>, <strong>FastAPI</strong>,
+        <strong>SHAP</strong> &amp; <strong>LIME</strong>
+      </p>
+      <p class="footer-copy">&copy; 2026 FakeGuard AI &mdash; All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
