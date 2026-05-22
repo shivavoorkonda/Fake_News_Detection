@@ -44,8 +44,12 @@ MODEL_NAME: str = 'distilbert-base-uncased'
 
 # Direct download link for the fine-tuned, quantized model weights.
 # Since Git limits files to 100MB and LFS is not pre-installed on Render,
-# the app will automatically download this file from your public GitHub Release on startup.
-MODEL_DOWNLOAD_URL: str = 'https://github.com/shivavoorkonda/Fake_News_Detection/releases/download/v1.0/quantized_model.pt'
+# the app will automatically download this file on startup.
+# You can override this securely via the MODEL_DOWNLOAD_URL environment variable for private hosting.
+MODEL_DOWNLOAD_URL: str = os.environ.get(
+    'MODEL_DOWNLOAD_URL',
+    'https://github.com/shivavoorkonda/Fake_News_Detection/releases/download/v1.0/quantized_model.pt'
+)
 
 # Interview: Why max_length=128 instead of 256?
 # Reducing max_length to 64 significantly speeds up self-attention training
