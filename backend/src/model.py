@@ -36,9 +36,79 @@ from transformers import (
     PreTrainedTokenizerBase,
 )
 
-from src.config import MODEL_NAME, NUM_LABELS, MODEL_DIR, HF_MODEL_NAME
+from src.config import MODEL_NAME, NUM_LABELS, MODEL_DIR, MODEL_DOWNLOAD_URL
 
 logger = logging.getLogger(__name__)
+
+
+def download_model_weights(url: str, dest_path: Path):
+    """Download model weights from a public URL with a progress bar in the logs."""
+    import urllib.request
+    import time
+
+    logger.info("Starting download of model weights from: %s", url)
+    logger.info("Destination path: %s", dest_path)
+
+    # Create parent directories if they don't exist
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+    start_time = time.time()
+    last_reported = 0.0
+
+    def progress_callback(block_num, block_size, total_size):
+        nonlocal last_reported
+        downloaded = block_num * block_size
+        if total_size > 0:
+            percent = (downloaded / total_size) * 100
+            # Report progress every 10% to avoid flooding the logs
+            if percent - last_reported >= 10.0 or percent >= 100.0:
+                elapsed = time.time() - start_time
+                speed = (downloaded / (1024 * 1024)) / elapsed if elapsed > 0 else 0
+                logger.info(
+                    "Downloading model weights: %.1f%% (%.1f MB of %.1f MB) - Speed: %.2f MB/s",
+                    percent,
+                    downloaded / (1024 * 1024),
+                    total_size / (1024 * 1024),
+                    speed
+                )
+                last_reported = percent
+        else:
+            if downloaded - last_reported >= 10 * 1024 * 1024:  # every 10MB
+                logger.info("Downloaded %.1f MB (unknown total size)", downloaded / (1024 * 1024))
+                last_reported = downloaded
+
+    try:
+        # Use urllib to download to temporary file first, then rename to dest_path
+        # to prevent corrupt half-downloaded files in case of interruption
+        temp_path = dest_path.with_suffix('.tmp')
+
+        # User-agent header to avoid getting blocked by some hosting providers
+        opener = urllib.request.build_opener()
+        opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)')]
+        urllib.request.install_opener(opener)
+
+        urllib.request.urlretrieve(url, str(temp_path), reporthook=progress_callback)
+
+        # Rename tmp file to final destination
+        if temp_path.exists():
+            if dest_path.exists():
+                dest_path.unlink()
+            temp_path.rename(dest_path)
+
+        elapsed = time.time() - start_time
+        logger.info(
+            "Download completed successfully in %.1fs. Model size: %.1f MB",
+            elapsed,
+            dest_path.stat().st_size / (1024 * 1024)
+        )
+    except Exception as e:
+        logger.error("Failed to download model weights from %s: %s", url, e)
+        if 'temp_path' in locals() and temp_path.exists():
+            try:
+                temp_path.unlink()
+            except Exception:
+                pass
+        raise
 
 
 def create_model(
@@ -148,21 +218,36 @@ def load_saved_model(
     quantized_flag = save_path / "quantized.flag"
     quantized_weights = save_path / "quantized_model.pt"
 
+    # Check if we need to download the quantized weights
+    # If the file doesn't exist, or is less than 1MB (meaning it's just a Git LFS pointer), we download it!
+    is_lfs_pointer = quantized_weights.exists() and quantized_weights.stat().st_size < 1024 * 1024
+
+    if not quantized_weights.exists() or is_lfs_pointer:
+        if MODEL_DOWNLOAD_URL:
+            logger.info("Quantized weights file is missing or is a Git LFS pointer. Downloading actual weights...")
+            try:
+                download_model_weights(MODEL_DOWNLOAD_URL, quantized_weights)
+            except Exception as e:
+                logger.error("Automatic download of quantized weights failed: %s", e)
+        else:
+            logger.warning("Quantized weights file is missing/pointer, but MODEL_DOWNLOAD_URL is not set.")
+
     # ── Option A: Load INT8 quantized model (preferred for Render free tier) ──
-    if quantized_flag.exists() and quantized_weights.exists():
+    if quantized_flag.exists() and quantized_weights.exists() and quantized_weights.stat().st_size > 1024 * 1024:
         logger.info("Loading INT8 quantized model from %s", save_path)
         try:
             import torch
-            from transformers import AutoTokenizer
+            from transformers import AutoTokenizer, AutoConfig
 
-            # Rebuild architecture + apply quantization wrapper
-            model = AutoModelForSequenceClassification.from_pretrained(
-                str(save_path), ignore_mismatched_sizes=True
-            )
+            # Rebuild architecture from config.json (avoids needing model.safetensors)
+            config = AutoConfig.from_pretrained(str(save_path))
+            model = AutoModelForSequenceClassification.from_config(config)
+
+            # Apply dynamic quantization to match saved model structure
             model = torch.quantization.quantize_dynamic(
                 model, {torch.nn.Linear}, dtype=torch.qint8
             )
-            # Load quantized weights
+            # Load fine-tuned, quantized weights
             state_dict = torch.load(
                 str(quantized_weights), map_location="cpu", weights_only=True
             )
@@ -188,26 +273,19 @@ def load_saved_model(
     if local_exists:
         logger.info("Loading fp32 model from %s", save_path)
         model_source = str(save_path)
-    elif HF_MODEL_NAME:
-        logger.info(
-            "Local model not found. Falling back to Hugging Face Hub: %s",
-            HF_MODEL_NAME,
-        )
-        model_source = HF_MODEL_NAME
+        try:
+            model = AutoModelForSequenceClassification.from_pretrained(model_source)
+            tokenizer = AutoTokenizer.from_pretrained(model_source)
+            model.eval()
+            logger.info("Model loaded successfully from %s.", model_source)
+            return model, tokenizer
+        except OSError as e:
+            logger.error("Failed to load model from '%s': %s", model_source, e)
+            raise
     else:
         raise FileNotFoundError(
             f"No quantized or fp32 model found at: {save_path}."
         )
-
-    try:
-        model = AutoModelForSequenceClassification.from_pretrained(model_source)
-        tokenizer = AutoTokenizer.from_pretrained(model_source)
-        model.eval()
-        logger.info("Model loaded successfully from %s.", model_source)
-        return model, tokenizer
-    except OSError as e:
-        logger.error("Failed to load model from '%s': %s", model_source, e)
-        raise
 
 
 # ──────────────────────────────────────────────────────────────────────────────

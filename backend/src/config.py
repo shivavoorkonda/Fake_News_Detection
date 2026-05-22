@@ -42,10 +42,10 @@ METRICS_DIR: Path = BASE_DIR / 'models'
 # the massive speedup — especially important when serving real-time predictions.
 MODEL_NAME: str = 'distilbert-base-uncased'
 
-# The public Hugging Face repository where your fine-tuned SADA model is hosted.
-# Render will pull from this repository automatically because large model files
-# are excluded from Git to prevent repository bloat.
-HF_MODEL_NAME: str = 'shivavoorkonda/Fake_News_Detection'
+# Direct download link for the fine-tuned, quantized model weights.
+# Since Git limits files to 100MB and LFS is not pre-installed on Render,
+# the app will automatically download this file from your public GitHub Release on startup.
+MODEL_DOWNLOAD_URL: str = 'https://github.com/shivavoorkonda/Fake_News_Detection/releases/download/v1.0/quantized_model.pt'
 
 # Interview: Why max_length=128 instead of 256?
 # Reducing max_length to 64 significantly speeds up self-attention training
