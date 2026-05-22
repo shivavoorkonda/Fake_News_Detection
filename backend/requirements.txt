@@ -1,8 +1,5 @@
-# ──────────────────────────────────────────────────────────────────────────────
-# CPU-only PyTorch — saves ~150MB RAM vs the full CUDA build.
-# Render free tier has 512MB RAM; CPU-only torch is essential.
-# ──────────────────────────────────────────────────────────────────────────────
---index-url https://download.pytorch.org/whl/cpu
+# CPU-only PyTorch wheel (saves ~150MB RAM vs full CUDA build on Render free tier)
+--extra-index-url https://download.pytorch.org/whl/cpu
 torch>=2.0.0
 
 # Core NLP
