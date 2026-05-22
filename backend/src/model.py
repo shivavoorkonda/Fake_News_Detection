@@ -215,77 +215,95 @@ def load_saved_model(
     """
     save_dir = save_dir or str(MODEL_DIR)
     save_path = Path(save_dir)
-    quantized_flag = save_path / "quantized.flag"
-    quantized_weights = save_path / "quantized_model.pt"
 
-    # Check if we need to download the quantized weights
-    # If the file doesn't exist, or is less than 1MB (meaning it's just a Git LFS pointer), we download it!
-    is_lfs_pointer = quantized_weights.exists() and quantized_weights.stat().st_size < 1024 * 1024
+    # 1. Smart weights format detection based on MODEL_DOWNLOAD_URL
+    url = MODEL_DOWNLOAD_URL or ""
+    if "model.safetensors" in url or url.lower().endswith(".safetensors"):
+        target_filename = "model.safetensors"
+    elif "pytorch_model.bin" in url or url.lower().endswith(".bin"):
+        target_filename = "pytorch_model.bin"
+    elif "quantized_model.pt" in url or url.lower().endswith(".pt"):
+        target_filename = "quantized_model.pt"
+    else:
+        # Default to standard model.safetensors for extremely memory-efficient mmap loading
+        target_filename = "model.safetensors"
 
-    if not quantized_weights.exists() or is_lfs_pointer:
-        if MODEL_DOWNLOAD_URL:
-            logger.info("Quantized weights file is missing or is a Git LFS pointer. Downloading actual weights...")
+    weights_file = save_path / target_filename
+
+    # Check if the file is missing or a Git LFS pointer (< 1MB)
+    is_missing_or_pointer = not weights_file.exists() or weights_file.stat().st_size < 1024 * 1024
+
+    if is_missing_or_pointer:
+        if url:
+            logger.info("Model weights file '%s' is missing or is a Git LFS pointer. Downloading actual weights...", target_filename)
             try:
-                download_model_weights(MODEL_DOWNLOAD_URL, quantized_weights)
+                download_model_weights(url, weights_file)
             except Exception as e:
-                logger.error("Automatic download of quantized weights failed: %s", e)
+                logger.error("Automatic download of weights failed: %s", e)
         else:
-            logger.warning("Quantized weights file is missing/pointer, but MODEL_DOWNLOAD_URL is not set.")
+            logger.warning("Weights file '%s' is missing/pointer, but MODEL_DOWNLOAD_URL is not set.", target_filename)
 
-    # ── Option A: Load INT8 quantized model (preferred for Render free tier) ──
-    if quantized_flag.exists() and quantized_weights.exists() and quantized_weights.stat().st_size > 1024 * 1024:
-        logger.info("Loading INT8 quantized model from %s", save_path)
+    # ── Option B: Full fp32 model from local disk (Highly Preferred: uses memory-mapped safetensors/bin, ZERO startup memory spike, fits in 512MB RAM) ──
+    local_safetensors = save_path / "model.safetensors"
+    local_bin = save_path / "pytorch_model.bin"
+
+    has_safetensors = local_safetensors.exists() and local_safetensors.stat().st_size > 1024 * 1024
+    has_bin = local_bin.exists() and local_bin.stat().st_size > 1024 * 1024
+
+    if has_safetensors or has_bin:
+        logger.info("Loading standard fp32 model using memory mapping (extremely light on RAM)...")
+        try:
+            model = AutoModelForSequenceClassification.from_pretrained(str(save_path))
+            tokenizer = AutoTokenizer.from_pretrained(str(save_path))
+            model.eval()
+            logger.info("Standard model loaded successfully using mmap.")
+            return model, tokenizer
+        except Exception as e:
+            logger.error("Failed to load standard model: %s", e)
+            raise
+
+    # ── Option A: Load INT8 quantized model (Note: High peak RAM spike at startup!) ──
+    local_quantized = save_path / "quantized_model.pt"
+    has_quantized = local_quantized.exists() and local_quantized.stat().st_size > 1024 * 1024
+
+    if has_quantized:
+        logger.warning("No standard weights found. Loading INT8 quantized model (Note: High peak RAM spike at startup!)")
         try:
             import torch
-            from transformers import AutoTokenizer, AutoConfig
+            import gc
+            from transformers import AutoConfig
 
-            # Rebuild architecture from config.json (avoids needing model.safetensors)
+            # Rebuild architecture from config.json
             config = AutoConfig.from_pretrained(str(save_path))
             model = AutoModelForSequenceClassification.from_config(config)
+            gc.collect()
 
             # Apply dynamic quantization to match saved model structure
             model = torch.quantization.quantize_dynamic(
                 model, {torch.nn.Linear}, dtype=torch.qint8
             )
+            gc.collect()
+
             # Load fine-tuned, quantized weights
             state_dict = torch.load(
-                str(quantized_weights), map_location="cpu", weights_only=True
+                str(local_quantized), map_location="cpu", weights_only=True
             )
             model.load_state_dict(state_dict)
+            del state_dict
+            gc.collect()
+
             model.eval()
 
             tokenizer = AutoTokenizer.from_pretrained(str(save_path))
-            logger.info("Quantized model loaded successfully (91MB RAM).")
+            logger.info("Quantized model loaded successfully.")
             return model, tokenizer
         except Exception as e:
-            logger.warning("Quantized load failed (%s), falling back to fp32.", e)
-
-    # ── Option B: Full fp32 model from local disk ──
-    local_exists = (
-        save_path.exists()
-        and (save_path / "config.json").exists()
-        and (
-            (save_path / "model.safetensors").exists()
-            or (save_path / "pytorch_model.bin").exists()
-        )
-    )
-
-    if local_exists:
-        logger.info("Loading fp32 model from %s", save_path)
-        model_source = str(save_path)
-        try:
-            model = AutoModelForSequenceClassification.from_pretrained(model_source)
-            tokenizer = AutoTokenizer.from_pretrained(model_source)
-            model.eval()
-            logger.info("Model loaded successfully from %s.", model_source)
-            return model, tokenizer
-        except OSError as e:
-            logger.error("Failed to load model from '%s': %s", model_source, e)
+            logger.error("Failed to load quantized model: %s", e)
             raise
-    else:
-        raise FileNotFoundError(
-            f"No quantized or fp32 model found at: {save_path}."
-        )
+
+    raise FileNotFoundError(
+        f"No model weights (model.safetensors or quantized_model.pt) found at: {save_path}."
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
