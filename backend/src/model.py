@@ -145,10 +145,37 @@ def load_saved_model(
     """
     save_dir = save_dir or str(MODEL_DIR)
     save_path = Path(save_dir)
+    quantized_flag = save_path / "quantized.flag"
+    quantized_weights = save_path / "quantized_model.pt"
 
-    # Check if the local model directory has the essential files.
-    # Since saved model weights are excluded from Git to prevent repository bloat (260MB+),
-    # Render deployments will not have them locally. We seamlessly fall back to Hugging Face Hub.
+    # ── Option A: Load INT8 quantized model (preferred for Render free tier) ──
+    if quantized_flag.exists() and quantized_weights.exists():
+        logger.info("Loading INT8 quantized model from %s", save_path)
+        try:
+            import torch
+            from transformers import AutoTokenizer
+
+            # Rebuild architecture + apply quantization wrapper
+            model = AutoModelForSequenceClassification.from_pretrained(
+                str(save_path), ignore_mismatched_sizes=True
+            )
+            model = torch.quantization.quantize_dynamic(
+                model, {torch.nn.Linear}, dtype=torch.qint8
+            )
+            # Load quantized weights
+            state_dict = torch.load(
+                str(quantized_weights), map_location="cpu", weights_only=True
+            )
+            model.load_state_dict(state_dict)
+            model.eval()
+
+            tokenizer = AutoTokenizer.from_pretrained(str(save_path))
+            logger.info("Quantized model loaded successfully (91MB RAM).")
+            return model, tokenizer
+        except Exception as e:
+            logger.warning("Quantized load failed (%s), falling back to fp32.", e)
+
+    # ── Option B: Full fp32 model from local disk ──
     local_exists = (
         save_path.exists()
         and (save_path / "config.json").exists()
@@ -159,32 +186,25 @@ def load_saved_model(
     )
 
     if local_exists:
-        logger.info("Loading fine-tuned model locally from %s", save_path)
+        logger.info("Loading fp32 model from %s", save_path)
         model_source = str(save_path)
     elif HF_MODEL_NAME:
         logger.info(
-            "Local model not found at %s. Seamlessly falling back to loading "
-            "fine-tuned weights from Hugging Face Hub: %s",
-            save_path,
+            "Local model not found. Falling back to Hugging Face Hub: %s",
             HF_MODEL_NAME,
         )
         model_source = HF_MODEL_NAME
     else:
         raise FileNotFoundError(
-            f"Model directory not found locally at: {save_path}, and no Hugging Face "
-            "fallback repository (HF_MODEL_NAME) is configured in config.py."
+            f"No quantized or fp32 model found at: {save_path}."
         )
 
     try:
         model = AutoModelForSequenceClassification.from_pretrained(model_source)
         tokenizer = AutoTokenizer.from_pretrained(model_source)
-
-        # Set model to evaluation mode by default for inference safety.
         model.eval()
-
-        logger.info("Model and tokenizer loaded successfully from %s.", model_source)
+        logger.info("Model loaded successfully from %s.", model_source)
         return model, tokenizer
-
     except OSError as e:
         logger.error("Failed to load model from '%s': %s", model_source, e)
         raise

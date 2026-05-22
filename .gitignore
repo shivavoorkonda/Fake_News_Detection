@@ -27,14 +27,24 @@ env/
 *.swp
 
 # Fake News Detector - Data and Models (Keep it professional and lightweight)
-# We ignore the raw dataset CSVs (each 50MB+) and model checkpoints (500MB+)
+# We ignore the raw dataset CSVs (each 50MB+) and full fp32 PyTorch checkpoints.
+# The quantized_model.pt (132MB) is tracked via Git LFS instead.
 backend/data/raw/
 backend/data/**/*.csv
 backend/dataset/
 backend/dataset/**/*.csv
-backend/models/saved/
+backend/models/saved/*.safetensors
+backend/models/saved/pytorch_model.bin
 backend/models/training_output/
 backend/models/test_data.csv
+# Allow quantized weights and marker (tracked via Git LFS)
+!backend/models/saved/quantized_model.pt
+!backend/models/saved/quantized.flag
+!backend/models/saved/config.json
+!backend/models/saved/tokenizer.json
+!backend/models/saved/tokenizer_config.json
+!backend/models/saved/special_tokens_map.json
+!backend/models/saved/vocab.txt
 
 # Output logs and temporary images
 *.log

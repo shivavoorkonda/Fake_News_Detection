@@ -1,0 +1,2 @@
+backend/models/onnx/model.onnx filter=lfs diff=lfs merge=lfs -text
+backend/models/saved/quantized_model.pt filter=lfs diff=lfs merge=lfs -text

@@ -1,12 +1,23 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# CPU-only PyTorch — saves ~150MB RAM vs the full CUDA build.
+# Render free tier has 512MB RAM; CPU-only torch is essential.
+# ──────────────────────────────────────────────────────────────────────────────
+--index-url https://download.pytorch.org/whl/cpu
 torch>=2.0.0
+
+# Core NLP
 transformers>=4.30.0
+tokenizers>=0.13.0
+
+# API framework
 fastapi>=0.100.0
 uvicorn[standard]>=0.23.0
-pandas>=2.0.0
-scikit-learn>=1.3.0
+python-multipart>=0.0.6
+
+# Explainability
 shap>=0.42.0
 lime>=0.2.0
+
+# Utilities
 numpy>=1.24.0
-matplotlib>=3.7.0
-seaborn>=0.12.0
-accelerate>=0.21.0
+scikit-learn>=1.3.0

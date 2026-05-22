@@ -181,7 +181,7 @@ async def lifespan(app: FastAPI):
         logger.warning(
             "No trained model found at %s. "
             "The API will start but /predict and /explain will return errors. "
-            "Train the model first: python -m src.train",
+            "Ensure Git LFS model files are present.",
             MODEL_DIR,
         )
         _model_loaded = False
