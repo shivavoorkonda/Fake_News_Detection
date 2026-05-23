@@ -5,11 +5,13 @@
 // ────────────────────────────────────────────────────────────────
 // Configuration
 // ────────────────────────────────────────────────────────────────
-const API_BASE = window.location.origin.startsWith('file') || window.location.origin === 'null' || !window.location.hostname
-  ? 'http://localhost:8000'
-  : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? (window.location.port === '8000' ? window.location.origin : 'http://localhost:8000')
-      : window.location.origin);
+let API_BASE = localStorage.getItem('API_BASE') || (
+  window.location.origin.startsWith('file') || window.location.origin === 'null' || !window.location.hostname
+    ? 'http://localhost:8000'
+    : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? (window.location.port === '8000' ? window.location.origin : 'http://localhost:8000')
+        : window.location.origin)
+);
 
 // ────────────────────────────────────────────────────────────────
 // Sample Articles — realistic examples for quick testing
@@ -545,4 +547,132 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.appendChild(document.createTextNode(str));
   return div.innerHTML;
+}
+
+// ════════════════════════════════════════════════════════════════
+// CONNECTION SETTINGS MODAL LOGIC
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * Open the connection settings modal and load current API_BASE.
+ */
+function openSettings() {
+  const modal = document.getElementById('settings-modal');
+  const input = document.getElementById('api-url');
+  const statusContainer = document.getElementById('connection-status-container');
+  
+  statusContainer.innerHTML = ''; // Clear previous status
+  input.value = API_BASE;
+  modal.classList.add('active');
+  
+  // Prevent body scrolling
+  document.body.style.overflow = 'hidden';
+}
+
+/**
+ * Close the connection settings modal.
+ */
+function closeSettings() {
+  const modal = document.getElementById('settings-modal');
+  modal.classList.remove('active');
+  
+  // Re-enable body scrolling
+  document.body.style.overflow = '';
+}
+
+/**
+ * Save connection settings to localStorage.
+ */
+function saveConnectionSettings() {
+  const input = document.getElementById('api-url');
+  let url = input.value.trim();
+  
+  // Strip trailing slash if present
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  
+  if (!url) {
+    alert('API Base URL cannot be empty.');
+    return;
+  }
+  
+  API_BASE = url;
+  localStorage.setItem('API_BASE', url);
+  
+  // Close the modal
+  closeSettings();
+  
+  // Try reloading metrics with the new API
+  loadMetrics();
+}
+
+/**
+ * Test connectivity to the specified API URL by hitting /api/health.
+ */
+async function testAPIConnection() {
+  const input = document.getElementById('api-url');
+  let url = input.value.trim();
+  const statusContainer = document.getElementById('connection-status-container');
+  const testBtn = document.getElementById('test-connection-btn');
+  
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  
+  if (!url) {
+    statusContainer.innerHTML = `
+      <div class="status-alert status-alert--error">
+        <span>⚠️ API URL cannot be empty.</span>
+      </div>
+    `;
+    return;
+  }
+
+  // Update button and status to loading
+  testBtn.disabled = true;
+  statusContainer.innerHTML = `
+    <div class="status-alert status-alert--loading">
+      <span class="spinner" style="width: 14px; height: 14px; border-width: 2px; margin-right: 5px;"></span>
+      <span>Testing connection to ${url}...</span>
+    </div>
+  `;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+    
+    const res = await fetch(`${url}/api/health`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) {
+      throw new Error(`Server responded with HTTP ${res.status}`);
+    }
+    
+    const data = await res.json();
+    const modelLoaded = data.model_loaded;
+    
+    if (modelLoaded) {
+      statusContainer.innerHTML = `
+        <div class="status-alert status-alert--success">
+          <span>🟢 Connected successfully! Model is fully loaded on the server.</span>
+        </div>
+      `;
+    } else {
+      statusContainer.innerHTML = `
+        <div class="status-alert status-alert--success" style="background: rgba(255, 165, 0, 0.1); border-color: rgba(255, 165, 0, 0.2); color: var(--warning);">
+          <span>🟡 Connected to server, but model is not loaded yet. Make sure your model weights are hosted properly!</span>
+        </div>
+      `;
+    }
+  } catch (err) {
+    console.error('Connection test failed:', err);
+    statusContainer.innerHTML = `
+      <div class="status-alert status-alert--error">
+        <span>🔴 Connection failed. Ensure the server is running and CORS is enabled. Error: ${err.message}</span>
+      </div>
+    `;
+  } finally {
+    testBtn.disabled = false;
+  }
 }

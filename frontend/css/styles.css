@@ -1202,3 +1202,141 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.18);
 }
+
+/* ─── Settings Modal & Connection Settings ─────────────────────── */
+.btn-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-glass);
+  background: var(--bg-glass);
+  transition: var(--transition-fast);
+  margin-left: 0.5rem;
+}
+
+.btn-settings:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: rotate(45deg);
+}
+
+.settings-modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 14, 39, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-med);
+}
+
+.settings-modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  position: relative;
+  width: 90%;
+  max-width: 500px;
+  background: rgba(19, 24, 54, 0.7);
+  box-shadow: var(--shadow-card), 0 0 50px rgba(102, 126, 234, 0.15);
+  border: 1px solid var(--border-glass);
+  padding: 2.5rem;
+  border-radius: var(--radius-lg);
+  transform: translateY(30px);
+  transition: transform var(--transition-med);
+}
+
+.settings-modal.active .modal-card {
+  transform: translateY(0);
+}
+
+.modal-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  font-size: var(--fs-xl);
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  transition: var(--transition-fast);
+}
+
+.modal-close:hover {
+  color: var(--danger);
+  transform: scale(1.1);
+}
+
+.modal-title {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.modal-desc {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  margin-bottom: 1.75rem;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.modal-actions .btn {
+  flex: 1;
+}
+
+.connection-status-container {
+  margin-top: 1.5rem;
+}
+
+.status-alert {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: slideUp var(--transition-fast) forwards;
+}
+
+.status-alert--success {
+  background: rgba(0, 212, 170, 0.1);
+  border: 1px solid rgba(0, 212, 170, 0.2);
+  color: var(--success);
+}
+
+.status-alert--error {
+  background: rgba(255, 71, 87, 0.1);
+  border: 1px solid rgba(255, 71, 87, 0.2);
+  color: var(--danger);
+}
+
+.status-alert--loading {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
