@@ -37,11 +37,17 @@ Endpoints:
     GET  /metrics   — Return saved model evaluation metrics
 """
 
+import sys
 import json
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
+
+# Setup path so that 'src' imports resolve correctly when run from repository root
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
