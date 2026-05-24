@@ -1,0 +1,20 @@
+# CPU-only PyTorch wheel (saves ~150MB RAM vs full CUDA build on Render free tier)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.0.0
+
+# Core NLP
+transformers>=4.30.0
+tokenizers>=0.13.0
+
+# API framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+python-multipart>=0.0.6
+
+# Explainability
+shap>=0.42.0
+lime>=0.2.0
+
+# Utilities
+numpy>=1.24.0
+scikit-learn>=1.3.0
