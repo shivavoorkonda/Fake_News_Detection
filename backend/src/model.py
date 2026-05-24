@@ -251,12 +251,17 @@ def load_saved_model(
     has_bin = local_bin.exists() and local_bin.stat().st_size > 1024 * 1024
 
     if has_safetensors or has_bin:
-        logger.info("Loading standard fp32 model using memory mapping (extremely light on RAM)...")
+        logger.info("Loading standard model in bfloat16 using memory mapping (extremely light on RAM)...")
         try:
-            model = AutoModelForSequenceClassification.from_pretrained(str(save_path))
+            import torch
+            model = AutoModelForSequenceClassification.from_pretrained(
+                str(save_path),
+                torch_dtype=torch.bfloat16,
+                low_cpu_mem_usage=True
+            )
             tokenizer = AutoTokenizer.from_pretrained(str(save_path))
             model.eval()
-            logger.info("Standard model loaded successfully using mmap.")
+            logger.info("Standard model loaded successfully using mmap and bfloat16.")
             return model, tokenizer
         except Exception as e:
             logger.error("Failed to load standard model: %s", e)
@@ -310,10 +315,16 @@ def load_saved_model(
     # ── Option C: Hugging Face Hub Base Model Fallback (Ensures 100% successful zero-config start, NO 503 errors!) ──
     logger.warning("No custom fine-tuned weights found locally or downloaded. Falling back to pre-trained base model '%s' from Hugging Face Hub for zero-config startup...", MODEL_NAME)
     try:
-        model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=NUM_LABELS)
+        import torch
+        model = AutoModelForSequenceClassification.from_pretrained(
+            MODEL_NAME,
+            num_labels=NUM_LABELS,
+            torch_dtype=torch.bfloat16,
+            low_cpu_mem_usage=True
+        )
         tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         model.eval()
-        logger.info("Base pre-trained model fallback loaded successfully from Hugging Face Hub.")
+        logger.info("Base pre-trained model fallback loaded successfully from Hugging Face Hub in bfloat16.")
         return model, tokenizer
     except Exception as e:
         logger.error("Failed to load base pre-trained model fallback: %s", e)
