@@ -48,7 +48,7 @@ MODEL_NAME: str = 'distilbert-base-uncased'
 # You can override this securely via the MODEL_DOWNLOAD_URL environment variable for private hosting.
 MODEL_DOWNLOAD_URL: str = os.environ.get(
     'MODEL_DOWNLOAD_URL',
-    'https://github.com/shivavoorkonda/Fake_News_Detection/releases/download/v1.0/quantized_model.pt'
+    'https://drive.usercontent.com/download?id=1Fb_nBpNYwZw9nXQ7PYlXkRAeRa4o0uAb&export=download&confirm=t'
 )
 
 # Interview: Why max_length=128 instead of 256?

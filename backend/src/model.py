@@ -266,6 +266,12 @@ def load_saved_model(
     local_quantized = save_path / "quantized_model.pt"
     has_quantized = local_quantized.exists() and local_quantized.stat().st_size > 1024 * 1024
 
+    # Render Safety Guard: Prevent loading quantized model on Render free tier (causes OOM due to peak RAM spike of >900MB during torch.quantization)
+    import os
+    if has_quantized and "RENDER" in os.environ:
+        logger.warning("No standard weights found. Detected Render environment: skipping INT8 quantized loading fallback to prevent OOM crash.")
+        has_quantized = False
+
     if has_quantized:
         logger.warning("No standard weights found. Loading INT8 quantized model (Note: High peak RAM spike at startup!)")
         try:
